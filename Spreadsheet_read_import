@@ -1,0 +1,363 @@
+'''
+Homework 7:  This will count more towards your final grade than the average homework.
+(30 points)
+Note the two files do not have the same set of country names.  Also some fields could be empty
+or have unexpected entries.  Don't assume any column of information has data of expected format
+such as numbers or have anything at all, could also have symbols like --
+
+1) while creating city instances you will need to
+    add ISO2 as an attribute to country instances
+    add a calculated attribute called population ratio to city instances
+2) still other requirements are shown in the stub
+
+In addition to the methods explicitly required you may implement any other methods that help
+you with this homework.
+'''
+import csv
+import sys
+
+def writeFunctionOut(x):
+    # assign the sys.stdout to a holding variable
+    originalOutput = sys.stdout
+
+    # open a file and write via append to that file a print function
+    with open('answers.txt', 'a') as ans:
+        # assign the system output to our variable ans
+        sys.stdout = ans
+        # place in the print function the variable (or function) that is
+        # the parameter passed into writeFunctionOut()
+        print(x)
+
+    sys.stdout = originalOutput
+    # reassign the sys.stdout back to it's original value via the holding variable
+
+class Country(object):
+    '''
+    For each Country instance you create from the data in country_profile_variables.csv
+    you need to assign values to the following attributes (if the
+    corresponding information *is* available in the file).  Note you should name the attributes
+    exactly as given below. Attributes are:
+    
+    name                    : this is the country name (1st column in file), store as str
+    region                  : 2nd column in file, store as str, default is None
+    area                    : 3rd column in file, store as int, note some values may contain characters that are not digits, default is -1
+    population              : 4th column in file, this is the country level population, store as int, default is -1
+    life_expectancy_male    : store as float, default is -1
+    life_expectancy_female  : store as float, default is -1, (pay attention to how life expectancy data is given in column 28)
+    ISO2                    : set when city instances are created using file worldcities.csv, store as str, default is None
+    cid                     : this is a sequential id number (int) given to each Country instance starting from 1
+    
+    _registry is a dict with key = name and value = instance
+    _registry_instances = list(),  this is a list of country instances
+    '''
+
+    _registry = {}  # this is a dict with key = name and value = instance
+    _registry_instances = list()  # this is a list of country instances
+
+    count = 0
+
+    def __init__(self, name, region, cid, area, population, life_expectancy_male, life_expectancy_female, iso2):
+
+        Country.count += 1
+        self.name = name
+        self.region = region
+        self.cid = cid
+        self.area = area
+        self.population = population
+        self.life_expectancy_male = life_expectancy_male
+        self.life_expectancy_female = life_expectancy_female
+        self.ISO2 = iso2
+
+        Country._registry_instances.append(self)
+        Country._registry.update({str(self.name):self})
+
+    # class level method
+    def countriesRankedByPopulation(self):
+        '''
+        returns a list of country names corresponding to
+        countries ranked in decreasing order of population.
+        '''
+        tempdict = {}
+        for country in Country._registry:
+            temp_c = Country._registry[country]
+            tempdict.update({temp_c.name: int(temp_c.population)})
+        listA = sorted(tempdict.items(), key= lambda x: x[1], reverse=True)
+        final = [thing[0] for thing in listA]
+        return final
+
+    # instance level methods
+    def getLifeExpectancies(self):
+        '''
+        returns a tuple containing the male followed by the female life
+        expectancies for a country
+        '''
+        tup = (Country._registry[self].life_expectancy_male, Country._registry[self].life_expectancy_female)
+        return tup
+
+    # instance level methods
+    def regionCheck(country1, country2):
+        country1 = Country._registry[country1]
+        country2 = Country._registry[country2]
+        if country1.region == country2.region:
+            return ("The countries "+ country1.name +" and "+ country2.name +" are in the same region")
+        else:
+            return ("The countries "+ country1.name +" and "+ country2.name +" are not in the same region")
+
+    # instance level methods
+    def details(self):
+        '''
+        returns all details about a country
+        nothing returned
+        '''
+        x = Country._registry[self]
+        country_dict = {"Name": x.name, "Region": x.region, "Country ID": x.cid, "Area": x.area,
+                        "Country Population": x.population,
+                        "Male Life Expectancy at Birth": x.life_expectancy_male,
+                        "Female Life Expectancy at Birth": x.life_expectancy_female,
+                        "Country Language ISO Code": x.ISO2}
+        output = str()
+        for key in country_dict:
+            output += (f"{str(key) + ':':<45} {str(country_dict[key])}\n")
+        return(output)
+
+    # instance level methods
+    def printDetails(self):
+        '''
+        prints all details about a country
+        nothing returned
+        '''
+        print(Country.details(self))
+
+class City(Country):
+    '''
+    name                : The city name, use column 2 of the file (name_ascii)
+    latitude            : 3rd column of file, store as str, default None
+    longitude           : 4th column of file, store as str, default None
+    country_name        : 5th column of file, store as str, default None
+    population          : this is the city level population, 10th column of file, store as int, default -1
+    population_ratio    : this is (city population/country population) * 100, store as int, default value -1
+    cid                 : this is a sequential id number (int) given to each City instance starting from 1
+    '''
+
+    _registry = dict()  # key: name, value: instance
+    _registry_instances = list()  # list of city instances
+    _registry_name = list()  # list of city names
+    city_count = 0
+
+    def __init__(self, country_name, name, latitude, longitude, population, population_ratio, iso2, cid):
+
+        City.city_count += 1
+
+        self.name = name
+        self.latitude = latitude
+        self.longitude = longitude
+        self.country_name = country_name
+        self.population = population
+        self.population_ratio = population_ratio
+        self.cid = cid
+
+        for country in Country._registry:
+            if country == country_name:
+                Country._registry[country].ISO2 = iso2
+            else:
+                temp = None
+
+        City._registry_instances.append(self)
+        City._registry_name.append(self.name)
+        City._registry.update({str(self.name):self})
+
+    # class level method
+    def cityWithHighestPopulationRatio():
+        '''
+        This should return the name of the city with the highest population ratio and the population ratio
+        '''
+        popRatioDict = {}
+        for city in City._registry:
+            if City._registry[city].population_ratio > 15:
+                popRatioDict.update({City._registry[city].name: City._registry[city].population_ratio})
+        tempmax = max(popRatioDict, key = popRatioDict.get)
+        largestR = (tempmax, popRatioDict.get(tempmax))
+
+        return largestR
+
+    # instance level method
+    def details(self):
+        '''
+        returns all details about a city
+        nothing returned
+        '''
+        x = City._registry[self]
+        city_dict = {"Name": x.name, "Latitude": x.latitude, "Longitude": x.longitude, "Country": x.country_name, "City ID": x.cid, "City Population": x.population, "City Pop. Ratio": x.population_ratio}
+        output = str()
+        for key in city_dict:
+            output += (f"{str(key) + ':':<45} {str(city_dict[key])}\n")
+        return output
+
+    # instance level method
+    def printDetails(self):
+        '''
+        prints all details about a city
+        nothing returned
+        '''
+        print(City.details(self))
+
+def readfile1(file):
+    '''
+    Reads in country data to create country instances
+    '''
+
+    with open('./country_profile_variables.csv') as country_p:
+
+        csv_reader = csv.reader(country_p, delimiter=',')
+
+        for row in csv_reader:
+            if row[0] != "country":
+                name = str(row[0])
+                region = str(row[1])
+                if row[2].isdigit() and int(row[2]) > 0:
+                    area = int(row[2])
+                else:
+                    area = -1
+                if row[3].isdigit() and int(row[3]) > 0:
+                    population = int(row[3])* 1000
+                if '/' in row[27] and '...' not in row[27]:
+                    life_expectancy_male = float(row[27].split('/')[1])
+                    life_expectancy_female = float(row[27].split('/')[0])
+                else:
+                    life_expectancy_male = -1
+                    life_expectancy_female = -1
+                iso2 = None
+                cid = Country.count
+                country = Country(name, region, cid, area, population, life_expectancy_male, life_expectancy_female, iso2)
+
+def readfile2(file):
+    '''
+    Reads in country data to create city instances
+    '''
+
+    with open('./worldcities.csv') as country_p:
+        csv_reader = csv.reader(country_p, delimiter=',')
+
+        for row in csv_reader:
+            if row[4] != "country":
+
+                name = row[1]
+                latitude = row[2]
+                longitude = row[3]
+                country_name = row[4]
+                if row[9].isdigit() and int(row[9]) > 0:
+                    population = int(row[9])
+                else:
+                    population = -1
+                try:
+                    if population != -1 and Country._registry[country_name].population != -1:
+                        population_ratio = int(row[9])/(Country._registry[country_name].population) * 100
+                    else:
+                        population_ratio = -1
+                except KeyError:
+                    population_ratio = -1
+                iso2 = row[5]
+                cid = City.city_count
+                city = City(country_name, name, latitude, longitude, population, population_ratio, iso2, cid)
+
+def main():
+
+    readfile1('country_profile_variables.csv')
+    readfile2('worldcities.csv')
+
+    '''
+    Write code (in some cases these are single statement expressions) using your classes,
+    functions and attributes to answer the following questions.
+    Write out the questions and answers to a file called answer.txt and submit this as well as this
+    program file.
+    Note I have to see the code below for you to get points.
+    '''
+    '''
+    a) What is the length of _registry of the Country class?
+    The length of _registry of the Country class is X
+    '''
+    writeFunctionOut('What is the length of _registry of the Country class?')
+    writeFunctionOut("The length of _registry of the Country class is " + str(len(Country._registry)))
+
+    '''
+    b) What is the length of _registry_instances of the Country class?
+    The length of _registry_instances of the Country class is X
+    '''
+    writeFunctionOut('What is the length of _registry_instances of the Country class?')
+    writeFunctionOut("The length of _registry_instances of the Country class is " + str(len(Country._registry_instances)))
+
+    '''
+    c) What is the length of _registry of the City class?
+    The length of _registry of the City class is X
+    '''
+    writeFunctionOut('What is the length of _registry of the City class?')
+    writeFunctionOut("The length of _registry of the City class is " + str(len(City._registry)))
+
+    '''
+    d) What is the length of _registry_name of the City class?
+    The length of _registry_name of the City class is X
+    '''
+    writeFunctionOut('What is the length of _registry_name of the City class?')
+    writeFunctionOut("The length of _registry_name of the City class is " + str(len(City._registry_name)))
+
+    '''
+    e) Which city has the highest population ratio and what is this ratio?
+    The city with the highest population ratio is X and its population ratio is Y
+    '''
+
+    pop_tuple = City.cityWithHighestPopulationRatio()
+    pop_sentence = "The city with the highest population ratio is {} and its population ratio is {}"
+    popratio_output = pop_sentence.format(*pop_tuple)
+
+    writeFunctionOut('Which city has the highest population ratio and what is this ratio?')
+    writeFunctionOut(popratio_output)
+
+    '''    
+    f) What are the life expectancies of males and females in Burkina Faso?
+    The life expectancies of males and females in Burkina Faso are X and Y respectively
+    '''
+    cleList = list(Country.getLifeExpectancies("Burkina Faso"))
+    le_sentence = 'The life expectancies of males and females in Burkina Faso are {} and {} respectively'
+    le_output = le_sentence.format(*cleList)
+
+    writeFunctionOut('What are the life expectancies of males and females in Burkina Faso?')
+    writeFunctionOut(le_output)
+
+    '''
+    g) What are the life expectancies of males and females in American Samoa?
+    The life expectancies of males and females in American Samoa are X and Y respectively
+    '''
+
+    cleList = list(Country.getLifeExpectancies("American Samoa"))
+    le_sentence = 'The life expectancies of males and females in Burkina Faso are {} and {} respectively'
+    le_output = le_sentence.format(*cleList)
+
+    writeFunctionOut('What are the life expectancies of males and females in American Samoa?')
+    writeFunctionOut(le_output)
+    '''
+    h) Print out the details for Country 'Zambia'
+    here use some form of tabular format for the answer if possible, i leave the details to you.
+    '''
+
+    writeFunctionOut("Print out the details for City 'Zambia'")
+    writeFunctionOut(Country.details("Zambia"))
+
+    '''
+    i) Print out the details for City 'Sao Paulo'
+    here use some form of tabular format for the answer if possible, i leave the details to you.
+    '''
+
+    writeFunctionOut("Print out the details for City 'Sao Paulo'")
+    writeFunctionOut(City.details('Sao Paulo'))
+
+    '''
+    j) Are countries 'Albania' and 'Anguilla' in the same region?
+    The countries 'Albania' and 'Anguilla' X (are or are not) in the same region
+    '''
+
+    writeFunctionOut("Are countries 'Albania' and 'Anguilla' in the same region?")
+    writeFunctionOut(Country.regionCheck('Albania','Anguilla'))
+
+main()
+
+
